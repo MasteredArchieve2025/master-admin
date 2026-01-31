@@ -1,0 +1,22 @@
+/* Allow tablet & laptop */
+body {
+  background-color: #f4f6fb;
+  font-family: Arial, sans-serif;
+}
+
+/* Block mobile phones only */
+@media (max-width: 575px) {
+  body {
+    display: none;
+  }
+}
+
+/* Admin content width */
+.admin-form {
+  max-width: 1000px;
+}
+
+/* Tables stay readable on tablet */
+table {
+  white-space: nowrap;
+}
