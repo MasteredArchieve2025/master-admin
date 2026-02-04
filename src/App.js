@@ -16,7 +16,7 @@ import IQ from "./Pages/IQ/IQCRM";
 import ExtraSkill from "./Pages/ExtraSkill/ExtraSkill";
 import OnlineTutorials from "./Pages/OnlineTutorials/OnlineTutorials";
 import TopRated from "./Pages/TopRated/TopRated";
-
+import Blogs from "./Pages/Blogs/blogs";
 function App() {
   return (
     <BrowserRouter>
@@ -47,6 +47,11 @@ function App() {
 
           {/* IQ MODULE (IMPORTANT) */}
           <Route path="iq/*" element={<IQ />} />
+
+          {/* BLOGS */}
+          <Route path="blogs" element={<Blogs />} />
+
+          {/* EXTRA SKILL AND ONLINE TUTORIALS */}  
           
 
           <Route path="extra-skill" element={<ExtraSkill />} />

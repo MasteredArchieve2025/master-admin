@@ -44,6 +44,10 @@ const Sidebar = () => {
           <FaClipboardList /> Exam
         </NavLink>
 
+        <NavLink to="/blogs">
+          <FaClipboardList /> Blogs
+        </NavLink>
+
         <NavLink to="/iq">
           <FaBrain /> IQ
         </NavLink>

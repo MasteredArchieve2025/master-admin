@@ -2,20 +2,23 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const CATEGORY_API = "https://master-backend-18ik.onrender.com/api/college-categories/category";
-const UPLOAD_API = "https://master-backend-18ik.onrender.com/api/upload";
+const CATEGORY_API =
+  "https://master-backend-18ik.onrender.com/api/college-categories/category";
+const UPLOAD_API =
+  "https://master-backend-18ik.onrender.com/api/upload";
 
 const College = () => {
+  const navigate = useNavigate();
+
   const [categories, setCategories] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     categoryName: "",
     categoryImage: "",
-    description: ""
+    description: "",
   });
 
   // ================= LOAD =================
@@ -23,8 +26,9 @@ const College = () => {
     try {
       setLoading(true);
       const res = await axios.get(CATEGORY_API);
-      setCategories(res.data.data);
+      setCategories(res.data?.data || []);
     } catch (err) {
+      console.error(err);
       alert("Failed to load categories");
     } finally {
       setLoading(false);
@@ -36,35 +40,47 @@ const College = () => {
   }, []);
 
   // ================= FORM =================
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   // ================= IMAGE UPLOAD =================
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    console.log("Uploading file 👉", file);
+
+    const fd = new FormData();
+    fd.append("file", file); // ⚠️ backend must expect "file"
+
     try {
       setImageUploading(true);
 
-      const fd = new FormData();
-      fd.append("file", file);
+      const res = await axios.post(UPLOAD_API, fd);
 
-      const res = await axios.post(UPLOAD_API, fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      console.log("Upload response 👉", res.data);
 
       const fileUrl =
-        res.data?.files?.[0]?.url ||
-        res.data?.files?.[0] ||
         res.data?.url ||
-        res.data?.fileUrl;
+        res.data?.fileUrl ||
+        res.data?.data?.url ||
+        res.data?.data?.path ||
+        res.data?.files?.[0]?.url;
 
-      if (!fileUrl) throw new Error("Upload failed");
+      if (!fileUrl) {
+        throw new Error("No image URL returned");
+      }
 
-      setForm((prev) => ({ ...prev, categoryImage: fileUrl }));
+      setForm((prev) => ({
+        ...prev,
+        categoryImage: fileUrl,
+      }));
+
+      alert("Image uploaded successfully ✅");
     } catch (err) {
-      alert("Image upload failed");
+      console.error("UPLOAD ERROR ❌", err.response || err);
+      alert("Image upload failed ❌");
     } finally {
       setImageUploading(false);
     }
@@ -84,17 +100,22 @@ const College = () => {
 
       if (editingId) {
         await axios.put(`${CATEGORY_API}/${editingId}`, form);
-        alert("Category updated");
+        alert("Category updated ✅");
       } else {
         await axios.post(CATEGORY_API, form);
-        alert("Category added");
+        alert("Category added ✅");
       }
 
-      setForm({ categoryName: "", categoryImage: "", description: "" });
+      setForm({
+        categoryName: "",
+        categoryImage: "",
+        description: "",
+      });
       setEditingId(null);
       getCategories();
     } catch (err) {
-      alert("Save failed");
+      console.error(err);
+      alert("Save failed ❌");
     } finally {
       setLoading(false);
     }
@@ -106,20 +127,27 @@ const College = () => {
     setForm({
       categoryName: c.categoryName,
       categoryImage: c.categoryImage,
-      description: c.description || ""
+      description: c.description || "",
     });
   };
 
   // ================= DELETE =================
   const deleteCategory = async (id) => {
     if (!window.confirm("Delete this category?")) return;
-    await axios.delete(`${CATEGORY_API}/${id}`);
-    getCategories();
+
+    try {
+      await axios.delete(`${CATEGORY_API}/${id}`);
+      alert("Category deleted ✅");
+      getCategories();
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed ❌");
+    }
   };
 
   return (
     <div className="container mt-4">
-      <h3>College Categories</h3>
+      <h3 className="mb-3">College Categories</h3>
 
       {/* FORM */}
       <form onSubmit={handleSubmit} className="row g-3 mb-4">
@@ -140,7 +168,9 @@ const College = () => {
             className="form-control"
             onChange={handleImageUpload}
           />
-          {imageUploading && <small>Uploading image...</small>}
+          {imageUploading && (
+            <small className="text-primary">Uploading image...</small>
+          )}
         </div>
 
         <div className="col-md-4">
@@ -155,12 +185,20 @@ const College = () => {
 
         {form.categoryImage && (
           <div className="col-md-12">
-            <img src={form.categoryImage} width="100" alt="preview" />
+            <img
+              src={form.categoryImage}
+              alt="preview"
+              width="120"
+              className="mt-2 rounded border"
+            />
           </div>
         )}
 
         <div className="col-md-12">
-          <button className="btn btn-primary">
+          <button
+            className="btn btn-primary"
+            disabled={loading || imageUploading}
+          >
             {editingId ? "Update Category" : "Add Category"}
           </button>
         </div>
@@ -177,10 +215,18 @@ const College = () => {
               <th>Image</th>
               <th>Name</th>
               <th>Description</th>
-              <th>Action</th>
+              <th width="160">Action</th>
             </tr>
           </thead>
           <tbody>
+            {categories.length === 0 && (
+              <tr>
+                <td colSpan="5" className="text-center">
+                  No categories found
+                </td>
+              </tr>
+            )}
+
             {categories.map((c) => (
               <tr
                 key={c.id}
@@ -189,7 +235,9 @@ const College = () => {
               >
                 <td>{c.id}</td>
                 <td>
-                  <img src={c.categoryImage} width="50" />
+                  {c.categoryImage && (
+                    <img src={c.categoryImage} width="50" alt="" />
+                  )}
                 </td>
                 <td>{c.categoryName}</td>
                 <td>{c.description}</td>
