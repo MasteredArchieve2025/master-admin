@@ -32,7 +32,7 @@ const Sidebar = () => {
           <FaSchool /> School
         </NavLink>
 
-        <NavLink to="/college">
+        <NavLink to="/college-categories">
           <FaUniversity /> College
         </NavLink>
 

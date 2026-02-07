@@ -3,13 +3,23 @@ import "./App.css";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 
+// Dashboard
 import Dashboard from "./Pages/Dashboard/Dashboard";
+
+// Advertisement
 import Advertisement from "./Pages/Advertisement/AdvertisementCRMPage";
+
+// Schools
 import School from "./Pages/School/School";
 import SchoolsDataEntry from "./Pages/School/SchoolsDataEntry";
 import TuitionsDataEntry from "./Pages/School/TuitionsDataEntry";
-import College from "./Pages/College/College";
-import College1 from "./Pages/College/College1";
+
+// 🎓 COLLEGE MODULE
+import CollegeCategories from "./Pages/College/CollegeCategory";
+import Degree from "./Pages/College/Degree";
+import CollegeDetails from "./Pages/College/CollegeDetails";
+
+// Other Modules
 import Course from "./Pages/Course/Course";
 import Exam from "./Pages/Exam/Exam";
 import IQ from "./Pages/IQ/IQCRM";
@@ -17,6 +27,7 @@ import ExtraSkill from "./Pages/ExtraSkill/ExtraSkill";
 import OnlineTutorials from "./Pages/OnlineTutorials/OnlineTutorials";
 import TopRated from "./Pages/TopRated/TopRated";
 import Blogs from "./Pages/Blogs/blogs";
+
 function App() {
   return (
     <BrowserRouter>
@@ -37,23 +48,35 @@ function App() {
           <Route path="schools-data" element={<SchoolsDataEntry />} />
           <Route path="tuitions-data" element={<TuitionsDataEntry />} />
 
-          {/* Colleges */}
-          <Route path="college" element={<College />} />
-          <Route path="college/:id" element={<College1 />} />
+        
 
-          {/* Other Pages */}
+          {/* Colleges Flow */}
+          <Route path="/college-categories" element={<CollegeCategories />} />
+
+          <Route
+            path="/college-categories/:categoryId/degrees"
+            element={<Degree />}
+          />
+
+          <Route
+            path="/degrees/:degreeId/colleges"
+            element={<CollegeDetails />}
+          />
+
+          {/* ==========================
+              OTHER MODULES
+             ========================== */}
+
           <Route path="course" element={<Course />} />
           <Route path="exam" element={<Exam />} />
 
-          {/* IQ MODULE (IMPORTANT) */}
+          {/* IQ MODULE */}
           <Route path="iq/*" element={<IQ />} />
 
           {/* BLOGS */}
           <Route path="blogs" element={<Blogs />} />
 
-          {/* EXTRA SKILL AND ONLINE TUTORIALS */}  
-          
-
+          {/* EXTRA SKILL & ONLINE TUTORIALS */}
           <Route path="extra-skill" element={<ExtraSkill />} />
           <Route path="online-tutorials" element={<OnlineTutorials />} />
           <Route path="top-rated" element={<TopRated />} />
