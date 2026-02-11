@@ -47,13 +47,9 @@ const Colleges = () => {
     try {
       setLoading(true);
       const res = await axios.get(COLLEGE_API);
-      const data = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
+      const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-      setColleges(
-        data.filter((c) => Number(c.degreeId) === degreeId)
-      );
+      setColleges(data.filter((c) => Number(c.degreeId) === degreeId));
     } catch (err) {
       console.error("Error loading colleges:", err);
       setError("Failed to load colleges");
@@ -79,9 +75,7 @@ const Colleges = () => {
 
       const res = await axios.post(UPLOAD_API, fd);
       const url =
-        res.data?.url ||
-        res.data?.data?.url ||
-        res.data?.files?.[0]?.url;
+        res.data?.url || res.data?.data?.url || res.data?.files?.[0]?.url;
 
       if (url) {
         setForm((p) => ({ ...p, [field]: url }));
@@ -105,14 +99,14 @@ const Colleges = () => {
     // Validate required fields
     const requiredFields = {
       name: "College Name",
-      shortName: "Short Name", 
+      shortName: "Short Name",
       city: "City",
-      state: "State"
+      state: "State",
     };
 
     const missingFields = Object.keys(requiredFields)
-      .filter(key => !form[key]?.trim())
-      .map(key => requiredFields[key]);
+      .filter((key) => !form[key]?.trim())
+      .map((key) => requiredFields[key]);
 
     if (missingFields.length > 0) {
       return setError(`Missing required fields: ${missingFields.join(", ")}`);
@@ -128,9 +122,13 @@ const Colleges = () => {
       shortName: form.shortName.trim(),
       categoryId: categoryId,
       degreeId: degreeId,
-      ownership: (form.ownership.trim() || "Private").replace("PARIVATE", "PRIVATE"), // Fix typo
+      ownership: (form.ownership.trim() || "Private").replace(
+        "PARIVATE",
+        "PRIVATE",
+      ), // Fix typo
       collegeStatus: form.collegeStatus.trim() || "Autonomous", // Add default
-      affiliatedUniversity: form.affiliatedUniversity.trim() || "Anna University", // Add default
+      affiliatedUniversity:
+        form.affiliatedUniversity.trim() || "Anna University", // Add default
       address: form.address.trim() || "Address not specified",
       city: form.city.trim(),
       state: form.state.trim(),
@@ -138,28 +136,35 @@ const Colleges = () => {
       academics: form.academics.trim() || "Academics information",
       placementInfo: form.placementInfo.trim() || "Placement information",
       admissionInfo: form.admissionInfo.trim() || "Admission information",
-      phone: form.phone.trim() ? form.phone.trim().replace(/\D/g, '') : "0000000000",
-      whatsapp: form.whatsapp.trim() ? form.whatsapp.trim().replace(/\D/g, '') : "0000000000",
+      phone: form.phone.trim()
+        ? form.phone.trim().replace(/\D/g, "")
+        : "0000000000",
+      whatsapp: form.whatsapp.trim()
+        ? form.whatsapp.trim().replace(/\D/g, "")
+        : "0000000000",
       email: form.email.trim() || "info@college.com",
       website: form.website.trim() || "https://college.com",
       mapLink: form.mapLink.trim() || "https://maps.google.com",
       logo: form.logo.trim() || "https://example.com/logo.png",
-      collegeImage: form.collegeImage.trim() || "https://example.com/college.png",
+      collegeImage:
+        form.collegeImage.trim() || "https://example.com/college.png",
     };
 
     // Handle arrays
     if (form.departments?.trim()) {
-      payload.departments = form.departments.split(",")
-        .map(d => d.trim())
-        .filter(d => d !== "");
+      payload.departments = form.departments
+        .split(",")
+        .map((d) => d.trim())
+        .filter((d) => d !== "");
     } else {
       payload.departments = ["CSE", "ECE", "EEE", "Mechanical"];
     }
 
     if (form.facilities?.trim()) {
-      payload.facilities = form.facilities.split(",")
-        .map(f => f.trim())
-        .filter(f => f !== "");
+      payload.facilities = form.facilities
+        .split(",")
+        .map((f) => f.trim())
+        .filter((f) => f !== "");
     } else {
       payload.facilities = ["Library", "Hostel", "Transport"];
     }
@@ -169,7 +174,7 @@ const Colleges = () => {
     try {
       setLoading(true);
       let response;
-      
+
       if (editingId) {
         response = await axios.put(`${COLLEGE_API}/${editingId}`, payload);
       } else {
@@ -177,13 +182,17 @@ const Colleges = () => {
       }
 
       console.log("Server response:", response.data);
-      
+
       setForm(emptyForm);
       setEditingId(null);
-      setSuccess(editingId ? "College updated successfully!" : "College added successfully!");
-      
+      setSuccess(
+        editingId
+          ? "College updated successfully!"
+          : "College added successfully!",
+      );
+
       setTimeout(() => setSuccess(""), 3000);
-      
+
       await loadColleges();
     } catch (err) {
       console.error("FULL ERROR DETAILS:", {
@@ -194,16 +203,16 @@ const Colleges = () => {
         config: {
           url: err.config?.url,
           method: err.config?.method,
-          data: err.config?.data
-        }
+          data: err.config?.data,
+        },
       });
-      
+
       // Try to get detailed error
       const errorData = err.response?.data;
       let errorMessage = "Server error while saving college";
-      
+
       if (errorData) {
-        if (typeof errorData === 'string') {
+        if (typeof errorData === "string") {
           errorMessage = errorData;
         } else if (errorData.message) {
           errorMessage = errorData.message;
@@ -211,16 +220,18 @@ const Colleges = () => {
           errorMessage = errorData.error;
         } else if (errorData.errors) {
           const errors = errorData.errors;
-          errorMessage = Array.isArray(errors) 
-            ? errors.map(e => `${e.path || e.field}: ${e.message || e.msg}`).join(', ')
+          errorMessage = Array.isArray(errors)
+            ? errors
+                .map((e) => `${e.path || e.field}: ${e.message || e.msg}`)
+                .join(", ")
             : JSON.stringify(errors);
         } else {
           errorMessage = JSON.stringify(errorData);
         }
       }
-      
+
       setError(`Error: ${errorMessage}`);
-      
+
       // Also log to console for debugging
       console.error("Error message:", errorMessage);
     } finally {
@@ -253,7 +264,7 @@ const Colleges = () => {
       website: "https://test.com",
       mapLink: "https://maps.google.com",
       logo: "https://example.com/logo.png",
-      collegeImage: "https://example.com/college.png"
+      collegeImage: "https://example.com/college.png",
     };
 
     console.log("Testing with minimal payload:", minimalPayload);
@@ -264,11 +275,15 @@ const Colleges = () => {
       setLoading(true);
       const response = await axios.post(COLLEGE_API, minimalPayload);
       console.log("Minimal test success:", response.data);
-      setSuccess("Minimal payload test successful! " + JSON.stringify(response.data));
+      setSuccess(
+        "Minimal payload test successful! " + JSON.stringify(response.data),
+      );
       await loadColleges();
     } catch (err) {
       console.error("Minimal test failed:", err.response?.data || err.message);
-      setError(`Minimal test failed: ${JSON.stringify(err.response?.data || err.message)}`);
+      setError(
+        `Minimal test failed: ${JSON.stringify(err.response?.data || err.message)}`,
+      );
     } finally {
       setLoading(false);
     }
@@ -280,15 +295,20 @@ const Colleges = () => {
     setForm({
       ...emptyForm, // Reset first
       ...c,
-      departments: Array.isArray(c.departments) ? c.departments.join(", ") : c.departments || "",
-      facilities: Array.isArray(c.facilities) ? c.facilities.join(", ") : c.facilities || "",
+      departments: Array.isArray(c.departments)
+        ? c.departments.join(", ")
+        : c.departments || "",
+      facilities: Array.isArray(c.facilities)
+        ? c.facilities.join(", ")
+        : c.facilities || "",
     });
   };
 
   /* ================= REMOVE ================= */
   const remove = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this college?")) return;
-    
+    if (!window.confirm("Are you sure you want to delete this college?"))
+      return;
+
     try {
       setLoading(true);
       await axios.delete(`${COLLEGE_API}/${id}`);
@@ -314,10 +334,12 @@ const Colleges = () => {
   return (
     <div className="container mt-4">
       <h3>{editingId ? "Update College" : "Add College"}</h3>
-      <p className="text-muted">Category ID: {categoryId} | Degree ID: {degreeId}</p>
+      <p className="text-muted">
+        Category ID: {categoryId} | Degree ID: {degreeId}
+      </p>
 
       <div className="mb-3">
-        <button 
+        <button
           className="btn btn-info btn-sm me-2"
           onClick={testMinimalPayload}
           disabled={loading}
@@ -328,8 +350,14 @@ const Colleges = () => {
 
       {error && (
         <div className="alert alert-danger" role="alert">
-          <strong>Error Details:</strong> 
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', margin: '10px 0' }}>
+          <strong>Error Details:</strong>
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              fontSize: "12px",
+              margin: "10px 0",
+            }}
+          >
             {error}
           </pre>
         </div>
@@ -417,7 +445,9 @@ const Colleges = () => {
           <select
             className="form-control"
             value={form.collegeStatus}
-            onChange={(e) => setForm({ ...form, collegeStatus: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, collegeStatus: e.target.value })
+            }
             required
           >
             <option value="">Select Status</option>
@@ -435,7 +465,9 @@ const Colleges = () => {
             className="form-control"
             placeholder="Affiliated University"
             value={form.affiliatedUniversity}
-            onChange={(e) => setForm({ ...form, affiliatedUniversity: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, affiliatedUniversity: e.target.value })
+            }
             required
           />
         </div>
@@ -516,12 +548,20 @@ const Colleges = () => {
 
         {/* Text Areas */}
         {[
-          { key: 'aboutCollege', label: 'About College *', rows: 3 },
-          { key: 'academics', label: 'Academics *', rows: 3 },
-          { key: 'departments', label: 'Departments * (comma-separated)', rows: 2 },
-          { key: 'facilities', label: 'Facilities * (comma-separated)', rows: 2 },
-          { key: 'placementInfo', label: 'Placement Information *', rows: 3 },
-          { key: 'admissionInfo', label: 'Admission Information *', rows: 3 },
+          { key: "aboutCollege", label: "About College *", rows: 3 },
+          { key: "academics", label: "Academics *", rows: 3 },
+          {
+            key: "departments",
+            label: "Departments * (comma-separated)",
+            rows: 2,
+          },
+          {
+            key: "facilities",
+            label: "Facilities * (comma-separated)",
+            rows: 2,
+          },
+          { key: "placementInfo", label: "Placement Information *", rows: 3 },
+          { key: "admissionInfo", label: "Admission Information *", rows: 3 },
         ].map(({ key, label, rows }) => (
           <div className="col-md-12" key={key}>
             <label className="form-label">{label}</label>
@@ -548,9 +588,9 @@ const Colleges = () => {
               required
             />
             <label className="input-group-text">
-              <input 
-                type="file" 
-                className="d-none" 
+              <input
+                type="file"
+                className="d-none"
                 onChange={(e) => uploadImage(e, "logo")}
                 accept="image/*"
               />
@@ -566,7 +606,9 @@ const Colleges = () => {
               className="form-control"
               placeholder="College Image URL"
               value={form.collegeImage}
-              onChange={(e) => setForm({ ...form, collegeImage: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, collegeImage: e.target.value })
+              }
               required
             />
             <label className="input-group-text">
@@ -583,18 +625,24 @@ const Colleges = () => {
 
         <div className="col-md-12">
           <div className="d-flex gap-2">
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               type="submit"
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
                   Saving...
                 </>
+              ) : editingId ? (
+                "Update College"
               ) : (
-                editingId ? "Update College" : "Add College"
+                "Add College"
               )}
             </button>
             {editingId && (
@@ -614,7 +662,7 @@ const Colleges = () => {
       <hr />
 
       <h4>Colleges List ({colleges.length})</h4>
-      
+
       {loading && !editingId ? (
         <div className="text-center my-4">
           <div className="spinner-border" role="status">
@@ -622,7 +670,9 @@ const Colleges = () => {
           </div>
         </div>
       ) : colleges.length === 0 ? (
-        <div className="alert alert-info">No colleges found for this degree</div>
+        <div className="alert alert-info">
+          No colleges found for this degree
+        </div>
       ) : (
         <div className="table-responsive">
           <table className="table table-bordered table-hover">
@@ -643,17 +693,23 @@ const Colleges = () => {
                   <td>{index + 1}</td>
                   <td>
                     {c.logo ? (
-                      <img 
-                        src={c.logo} 
-                        alt="Logo" 
-                        style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+                      <img
+                        src={c.logo}
+                        alt="Logo"
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "contain",
+                        }}
                       />
-                    ) : 'No logo'}
+                    ) : (
+                      "No logo"
+                    )}
                   </td>
                   <td>{c.name}</td>
-                  <td>{c.collegeStatus || 'N/A'}</td>
+                  <td>{c.collegeStatus || "N/A"}</td>
                   <td>{c.city}</td>
-                  <td>{c.phone || '-'}</td>
+                  <td>{c.phone || "-"}</td>
                   <td>
                     <div className="d-flex gap-2">
                       <button

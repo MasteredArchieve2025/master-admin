@@ -19,9 +19,15 @@ import CollegeCategories from "./Pages/College/CollegeCategory";
 import Degree from "./Pages/College/Degree";
 import CollegeDetails from "./Pages/College/CollegeDetails";
 
+// 📝 EXAM MODULE (NEW)
+import ExamCategories from "./Pages/Exam/ExamCategories";
+import ExamTypes from "./Pages/Exam/ExamTypes";
+import ExamSelect from "./Pages/Exam/ExamSelect";
+import ExamDetails from "./Pages/Exam/ExamDetails";
+import Institutions from "./Pages/Exam/Institutions";
+
 // Other Modules
 import Course from "./Pages/Course/Course";
-import Exam from "./Pages/Exam/Exam";
 import IQ from "./Pages/IQ/IQCRM";
 import ExtraSkill from "./Pages/ExtraSkill/ExtraSkill";
 import OnlineTutorials from "./Pages/OnlineTutorials/OnlineTutorials";
@@ -32,8 +38,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* DASHBOARD LAYOUT (Sidebar lives here) */}
         <Route path="/" element={<DashboardLayout />}>
+
           {/* Default */}
           <Route index element={<Navigate to="/dashboard" />} />
 
@@ -48,19 +54,49 @@ function App() {
           <Route path="schools-data" element={<SchoolsDataEntry />} />
           <Route path="tuitions-data" element={<TuitionsDataEntry />} />
 
-        
+          {/* ==========================
+              COLLEGE MODULE
+             ========================== */}
 
-          {/* Colleges Flow */}
-          <Route path="/college-categories" element={<CollegeCategories />} />
-
+          <Route path="college-categories" element={<CollegeCategories />} />
           <Route
-            path="/college-categories/:categoryId/degrees"
+            path="college-categories/:categoryId/degrees"
             element={<Degree />}
           />
-
           <Route
-            path="/degrees/:degreeId/colleges"
+            path="degrees/:degreeId/colleges"
             element={<CollegeDetails />}
+          />
+
+          {/* ==========================
+              EXAM MODULE (NEW)
+             ========================== */}
+
+          {/* 1️⃣ Exam Categories */}
+          <Route path="exam-categories" element={<ExamCategories />} />
+
+          {/* 2️⃣ Exam Types */}
+          <Route
+            path="exam-categories/:categoryId/types"
+            element={<ExamTypes />}
+          />
+
+          {/* 3️⃣ Select Page */}
+          <Route
+            path="exam-types/:typeId/select"
+            element={<ExamSelect />}
+          />
+
+          {/* 4️⃣ Exam Details */}
+          <Route
+            path="exam-types/:typeId/details"
+            element={<ExamDetails />}
+          />
+
+          {/* 5️⃣ Institutions */}
+          <Route
+            path="exam-types/:typeId/institutions"
+            element={<Institutions />}
           />
 
           {/* ==========================
@@ -68,7 +104,6 @@ function App() {
              ========================== */}
 
           <Route path="course" element={<Course />} />
-          <Route path="exam" element={<Exam />} />
 
           {/* IQ MODULE */}
           <Route path="iq/*" element={<IQ />} />
@@ -76,10 +111,10 @@ function App() {
           {/* BLOGS */}
           <Route path="blogs" element={<Blogs />} />
 
-          {/* EXTRA SKILL & ONLINE TUTORIALS */}
           <Route path="extra-skill" element={<ExtraSkill />} />
           <Route path="online-tutorials" element={<OnlineTutorials />} />
           <Route path="top-rated" element={<TopRated />} />
+
         </Route>
       </Routes>
     </BrowserRouter>
