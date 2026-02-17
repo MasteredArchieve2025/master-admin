@@ -20,3 +20,15 @@ export const EXAM_DETAILS_API = `${baseUrl}/api/exam-details`;
 
 // Institutions
 export const INSTITUTION_API = `${baseUrl}/api/institutions`;
+
+
+/* ================= EXTRA SKILL MODULE ================= */
+
+// Skill Categories (e.g., Fine Arts, Programming, Sports)
+export const SKILL_CATEGORY_API = `${baseUrl}/api/extra-skill-categories`;
+
+// Skill Types (e.g., Arts, Dance, Music, Coding)
+export const SKILL_TYPE_API = `${baseUrl}/api/extra-skill-types`;
+
+// Skill Institutions (Academies, Training Centers)
+export const SKILL_INSTITUTION_API = `${baseUrl}/api/extra-skill-institutions`;

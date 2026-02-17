@@ -63,7 +63,7 @@ const Sidebar = () => {
         </NavLink>
 
         {/* Extra Skill */}
-        <NavLink to="/extra-skill">
+        <NavLink to="/extra-skill-categories">
           <FaTools /> Extra Skill
         </NavLink>
 

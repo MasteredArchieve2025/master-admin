@@ -19,17 +19,21 @@ import CollegeCategories from "./Pages/College/CollegeCategory";
 import Degree from "./Pages/College/Degree";
 import CollegeDetails from "./Pages/College/CollegeDetails";
 
-// 📝 EXAM MODULE (NEW)
+// 📝 EXAM MODULE
 import ExamCategories from "./Pages/Exam/ExamCategories";
 import ExamTypes from "./Pages/Exam/ExamTypes";
 import ExamSelect from "./Pages/Exam/ExamSelect";
 import ExamDetails from "./Pages/Exam/ExamDetails";
 import Institutions from "./Pages/Exam/Institutions";
 
+// 🎨 EXTRA SKILL MODULE (with correct file names)
+import ExtraSkillCategories from "./Pages/ExtraSkill/ExtraSkillCategories";
+import ExtraSkillTypes from "./Pages/ExtraSkill/ExtraSkillTypes";
+import ExtraSkillInstitutions from "./Pages/ExtraSkill/ExtraSkillInstitutions";
+
 // Other Modules
 import Course from "./Pages/Course/Course";
 import IQ from "./Pages/IQ/IQCRM";
-import ExtraSkill from "./Pages/ExtraSkill/ExtraSkill";
 import OnlineTutorials from "./Pages/OnlineTutorials/OnlineTutorials";
 import TopRated from "./Pages/TopRated/TopRated";
 import Blogs from "./Pages/Blogs/blogs";
@@ -40,16 +44,24 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardLayout />}>
 
-          {/* Default */}
+          {/* ==========================
+              DEFAULT ROUTE
+             ========================== */}
           <Route index element={<Navigate to="/dashboard" />} />
 
-          {/* Dashboard */}
+          {/* ==========================
+              DASHBOARD
+             ========================== */}
           <Route path="dashboard" element={<Dashboard />} />
 
-          {/* Advertisement */}
+          {/* ==========================
+              ADVERTISEMENT
+             ========================== */}
           <Route path="advertisement" element={<Advertisement />} />
 
-          {/* Schools */}
+          {/* ==========================
+              SCHOOLS MODULE
+             ========================== */}
           <Route path="school" element={<School />} />
           <Route path="schools-data" element={<SchoolsDataEntry />} />
           <Route path="tuitions-data" element={<TuitionsDataEntry />} />
@@ -57,7 +69,6 @@ function App() {
           {/* ==========================
               COLLEGE MODULE
              ========================== */}
-
           <Route path="college-categories" element={<CollegeCategories />} />
           <Route
             path="college-categories/:categoryId/degrees"
@@ -69,9 +80,8 @@ function App() {
           />
 
           {/* ==========================
-              EXAM MODULE (NEW)
+              EXAM MODULE
              ========================== */}
-
           {/* 1️⃣ Exam Categories */}
           <Route path="exam-categories" element={<ExamCategories />} />
 
@@ -100,18 +110,41 @@ function App() {
           />
 
           {/* ==========================
-              OTHER MODULES
+              EXTRA SKILL MODULE
              ========================== */}
+          {/* 1️⃣ Extra Skill Categories */}
+          <Route path="extra-skill-categories" element={<ExtraSkillCategories />} />
 
+          {/* 2️⃣ Extra Skill Types */}
+          <Route
+            path="extra-skill-categories/:categoryId/types"
+            element={<ExtraSkillTypes />}
+          />
+
+          {/* 3️⃣ Extra Skill Institutions */}
+          <Route
+            path="extra-skill-types/:typeId/institutions"
+            element={<ExtraSkillInstitutions />}
+          />
+
+          {/* ==========================
+              COURSE MODULE
+             ========================== */}
           <Route path="course" element={<Course />} />
 
-          {/* IQ MODULE */}
+          {/* ==========================
+              IQ MODULE
+             ========================== */}
           <Route path="iq/*" element={<IQ />} />
 
-          {/* BLOGS */}
+          {/* ==========================
+              BLOGS MODULE
+             ========================== */}
           <Route path="blogs" element={<Blogs />} />
 
-          <Route path="extra-skill" element={<ExtraSkill />} />
+          {/* ==========================
+              OTHER MODULES
+             ========================== */}
           <Route path="online-tutorials" element={<OnlineTutorials />} />
           <Route path="top-rated" element={<TopRated />} />
 
