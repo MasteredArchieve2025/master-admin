@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { DEGREE_API } from "../../api/api";
@@ -18,7 +18,7 @@ const Degrees = () => {
   });
 
   /* ================= LOAD ================= */
-  const loadDegrees = async () => {
+  const loadDegrees = useCallback(async () => {
     try {
       const res = await axios.get(DEGREE_API);
 
@@ -26,7 +26,6 @@ const Degrees = () => {
         ? res.data
         : res.data?.data || res.data?.degrees || [];
 
-      // ✅ filter by categoryId (frontend)
       const filtered = allDegrees.filter(
         (d) => String(d.categoryId) === String(categoryId)
       );
@@ -37,11 +36,11 @@ const Degrees = () => {
       console.error("Degree load failed", err);
       setError("Failed to load degrees");
     }
-  };
+  }, [categoryId]);
 
   useEffect(() => {
     if (categoryId) loadDegrees();
-  }, [categoryId]);
+  }, [categoryId, loadDegrees]);
 
   /* ================= SAVE ================= */
   const submit = async (e) => {
@@ -107,9 +106,7 @@ const Degrees = () => {
             className="form-control"
             placeholder="Degree Name"
             value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
         </div>
 
@@ -118,9 +115,7 @@ const Degrees = () => {
             className="form-control"
             placeholder="Description"
             value={form.description}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
 

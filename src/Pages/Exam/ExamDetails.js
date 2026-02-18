@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { EXAM_DETAILS_API, UPLOAD_API } from "../../api/api";
 
 const ExamDetails = () => {
   const { typeId } = useParams();
-  const navigate = useNavigate();
   const [list, setList] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,12 +26,12 @@ const ExamDetails = () => {
     image: ""
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(EXAM_DETAILS_API);
       const allData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const filtered = allData.filter(item => item.typeId == typeId);
+      const filtered = allData.filter(item => item.typeId === Number(typeId));
       setList(filtered);
     } catch (err) {
       console.error("Load failed", err);
@@ -40,11 +39,11 @@ const ExamDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeId]);
 
   useEffect(() => {
     loadData();
-  }, [typeId]);
+  }, [loadData]);
 
   const uploadImage = async (e) => {
     const file = e.target.files[0];
@@ -52,7 +51,7 @@ const ExamDetails = () => {
 
     try {
       const fd = new FormData();
-      fd.append("file", file); // Use "file"
+      fd.append("file", file);
 
       const res = await axios.post(UPLOAD_API, fd, {
         headers: {
@@ -61,14 +60,14 @@ const ExamDetails = () => {
       });
 
       const url =
-        res.data?.url || 
-        res.data?.imageUrl || 
-        res.data?.data?.url || 
+        res.data?.url ||
+        res.data?.imageUrl ||
+        res.data?.data?.url ||
         res.data?.files?.[0]?.url ||
         res.data?.fileUrl;
 
       if (!url) throw new Error("No image URL");
-      setForm({ ...form, image: url });
+      setForm((prev) => ({ ...prev, image: url }));
       alert("Image uploaded!");
     } catch (err) {
       console.error("Upload failed", err);
