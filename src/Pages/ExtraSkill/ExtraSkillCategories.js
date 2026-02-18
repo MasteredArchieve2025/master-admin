@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { SKILL_CATEGORY_API, UPLOAD_API } from "../../api/api";
+
 
 const SkillCategories = () => {
   const [list, setList] = useState([]);
@@ -15,7 +16,7 @@ const SkillCategories = () => {
     image: ""
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await axios.get(SKILL_CATEGORY_API);
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
@@ -24,11 +25,11 @@ const SkillCategories = () => {
       console.error("Load failed", err);
       alert("Failed to load skill categories");
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const uploadImage = async (e) => {
     const file = e.target.files[0];
@@ -48,7 +49,7 @@ const SkillCategories = () => {
       const url = res.data?.url || res.data?.imageUrl || res.data?.data?.url || res.data?.files?.[0]?.url;
       if (!url) throw new Error("No image URL");
 
-      setForm({ ...form, image: url });
+      setForm((prev) => ({ ...prev, image: url }));
       alert("Image uploaded successfully!");
     } catch (err) {
       console.error("Upload failed", err);

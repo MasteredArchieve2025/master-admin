@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { SKILL_TYPE_API, SKILL_CATEGORY_API, UPLOAD_API } from "../../api/api";
@@ -17,26 +17,24 @@ const SkillTypes = () => {
     image: ""
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      // Load category name
       const categoryRes = await axios.get(`${SKILL_CATEGORY_API}/${categoryId}`);
       setCategoryName(categoryRes.data.name);
 
-      // Load types
       const res = await axios.get(`${SKILL_TYPE_API}/category/${categoryId}`);
       setList(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Load failed", err);
       alert("Failed to load skill types");
     }
-  };
+  }, [categoryId]);
 
   useEffect(() => {
     if (categoryId) {
       loadData();
     }
-  }, [categoryId]);
+  }, [categoryId, loadData]);
 
   const uploadImage = async (e) => {
     const file = e.target.files[0];
@@ -56,7 +54,7 @@ const SkillTypes = () => {
       const url = res.data?.url || res.data?.imageUrl || res.data?.data?.url || res.data?.files?.[0]?.url;
       if (!url) throw new Error("No image URL");
 
-      setForm({ ...form, image: url });
+      setForm((prev) => ({ ...prev, image: url }));
       alert("Image uploaded!");
     } catch (err) {
       console.error("Upload failed", err);

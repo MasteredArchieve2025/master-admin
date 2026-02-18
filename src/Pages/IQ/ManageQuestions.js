@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import Papa from "papaparse";
@@ -30,12 +30,8 @@ const ManageQuestions = () => {
   const [showBulk, setShowBulk] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    fetchQuestions();
-  }, [testId]);
-
   // ================= FETCH QUESTIONS =================
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(
@@ -47,7 +43,11 @@ const ManageQuestions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [testId]);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   // ================= ADD / EDIT =================
   const openAdd = () => {
@@ -71,13 +71,15 @@ const ManageQuestions = () => {
   };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleOptionChange = (index, value) => {
-    const updated = [...form.options];
-    updated[index] = value;
-    setForm({ ...form, options: updated });
+    setForm((prev) => {
+      const updated = [...prev.options];
+      updated[index] = value;
+      return { ...prev, options: updated };
+    });
   };
 
   const saveQuestion = async () => {
@@ -115,12 +117,9 @@ const ManageQuestions = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // CSV only check
     if (!file.name.toLowerCase().endsWith(".csv")) {
       alert("Please upload CSV file only");
-      if (fileRef.current) {
-        fileRef.current.value = "";
-      }
+      if (fileRef.current) fileRef.current.value = "";
       return;
     }
 
@@ -128,10 +127,9 @@ const ManageQuestions = () => {
       skipEmptyLines: true,
       complete: (res) => {
         console.log("RAW CSV DATA:", res.data);
-        
-        // Skip header row (first row)
+
         const rows = res.data.slice(1);
-        
+
         const parsed = rows.map((row, index) => {
           const question = {
             question_text: row[0]?.toString().trim() || "",
@@ -145,16 +143,17 @@ const ManageQuestions = () => {
             question_type: row[6]?.toString().trim() || "logical",
             difficulty: row[7]?.toString().trim() || "medium",
             explanation: row[8]?.toString().trim() || "",
-            isValid: 
-              row[0]?.toString().trim() && // question_text
-              row[1]?.toString().trim() && // option 1
-              row[2]?.toString().trim() && // option 2
-              row[3]?.toString().trim() && // option 3
-              row[4]?.toString().trim() && // option 4
-              row[5] !== undefined && row[5] !== "" && // correct_answer exists
-              !isNaN(parseInt(row[5])) // correct_answer is a number
+            isValid:
+              row[0]?.toString().trim() &&
+              row[1]?.toString().trim() &&
+              row[2]?.toString().trim() &&
+              row[3]?.toString().trim() &&
+              row[4]?.toString().trim() &&
+              row[5] !== undefined &&
+              row[5] !== "" &&
+              !isNaN(parseInt(row[5])),
           };
-          
+
           console.log(`Row ${index}:`, question);
           return question;
         });
@@ -165,20 +164,15 @@ const ManageQuestions = () => {
       error: (error) => {
         console.error("CSV parsing error:", error);
         alert("Error parsing CSV file");
-        if (fileRef.current) {
-          fileRef.current.value = "";
-        }
-      }
+        if (fileRef.current) fileRef.current.value = "";
+      },
     });
   };
 
   const handleBulkClose = () => {
     setShowBulk(false);
     setBulkQuestions([]);
-    // Reset file input when closing bulk view
-    if (fileRef.current) {
-      fileRef.current.value = "";
-    }
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const saveBulk = async () => {
@@ -334,9 +328,7 @@ const ManageQuestions = () => {
                     className="form-control mb-2"
                     placeholder={`Option ${i + 1}`}
                     value={opt}
-                    onChange={(e) =>
-                      handleOptionChange(i, e.target.value)
-                    }
+                    onChange={(e) => handleOptionChange(i, e.target.value)}
                   />
                 ))}
 
@@ -344,10 +336,10 @@ const ManageQuestions = () => {
                   className="form-select mb-2"
                   value={form.correct_answer}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
+                    setForm((prev) => ({
+                      ...prev,
                       correct_answer: Number(e.target.value),
-                    })
+                    }))
                   }
                 >
                   <option value={0}>Correct: A</option>
@@ -372,10 +364,7 @@ const ManageQuestions = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={saveQuestion}
-                >
+                <button className="btn btn-primary" onClick={saveQuestion}>
                   Save
                 </button>
               </div>
@@ -390,14 +379,18 @@ const ManageQuestions = () => {
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
-                <h5>Bulk Upload Preview ({bulkQuestions.filter(q => q.isValid).length} valid questions)</h5>
-                <button
-                  className="btn-close"
-                  onClick={handleBulkClose}
-                />
+                <h5>
+                  Bulk Upload Preview (
+                  {bulkQuestions.filter((q) => q.isValid).length} valid
+                  questions)
+                </h5>
+                <button className="btn-close" onClick={handleBulkClose} />
               </div>
-              
-              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+
+              <div
+                className="modal-body"
+                style={{ maxHeight: "70vh", overflowY: "auto" }}
+              >
                 <table className="table table-bordered">
                   <thead className="table-light">
                     <tr>
@@ -413,34 +406,60 @@ const ManageQuestions = () => {
                   </thead>
                   <tbody>
                     {bulkQuestions.map((q, i) => (
-                      <tr key={i} className={q.isValid ? '' : 'table-warning'}>
+                      <tr key={i} className={q.isValid ? "" : "table-warning"}>
                         <td>{i + 1}</td>
-                        <td>{q.question_text || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.options[0] || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.options[1] || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.options[2] || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.options[3] || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.correct_answer + 1 || <span className="text-danger">Missing</span>}</td>
-                        <td>{q.isValid ? '✅ Valid' : '❌ Invalid'}</td>
+                        <td>
+                          {q.question_text || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>
+                          {q.options[0] || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>
+                          {q.options[1] || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>
+                          {q.options[2] || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>
+                          {q.options[3] || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>
+                          {q.correct_answer + 1 || (
+                            <span className="text-danger">Missing</span>
+                          )}
+                        </td>
+                        <td>{q.isValid ? "✅ Valid" : "❌ Invalid"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleBulkClose}
-                >
+                <button className="btn btn-secondary" onClick={handleBulkClose}>
                   Cancel
                 </button>
                 <button
                   className="btn btn-primary"
                   onClick={saveBulk}
-                  disabled={uploading || bulkQuestions.filter(q => q.isValid).length === 0}
+                  disabled={
+                    uploading ||
+                    bulkQuestions.filter((q) => q.isValid).length === 0
+                  }
                 >
-                  {uploading ? 'Uploading...' : `Upload ${bulkQuestions.filter(q => q.isValid).length} Valid Questions`}
+                  {uploading
+                    ? "Uploading..."
+                    : `Upload ${bulkQuestions.filter((q) => q.isValid).length} Valid Questions`}
                 </button>
               </div>
             </div>

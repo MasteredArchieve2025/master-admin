@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { SKILL_INSTITUTION_API, SKILL_TYPE_API, UPLOAD_API } from "../../api/api";
@@ -25,26 +25,24 @@ const SkillInstitutions = () => {
     image: ""
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      // Load skill type name
       const typeRes = await axios.get(`${SKILL_TYPE_API}/${typeId}`);
       setSkillTypeName(typeRes.data.name);
 
-      // Load institutions
       const res = await axios.get(`${SKILL_INSTITUTION_API}/type/${typeId}`);
       setList(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Load failed", err);
       alert("Failed to load institutions");
     }
-  };
+  }, [typeId]);
 
   useEffect(() => {
     if (typeId) {
       loadData();
     }
-  }, [typeId]);
+  }, [typeId, loadData]);
 
   const uploadImage = async (e, field) => {
     const file = e.target.files[0];
@@ -65,10 +63,10 @@ const SkillInstitutions = () => {
       if (!url) throw new Error("No image URL");
 
       if (field === 'gallery') {
-        setForm({ ...form, gallery: [...form.gallery, url] });
+        setForm((prev) => ({ ...prev, gallery: [...prev.gallery, url] }));
         alert("Gallery image added!");
       } else {
-        setForm({ ...form, [field]: url });
+        setForm((prev) => ({ ...prev, [field]: url }));
         alert("Image uploaded!");
       }
     } catch (err) {
@@ -90,12 +88,16 @@ const SkillInstitutions = () => {
       const payload = {
         typeId: Number(typeId),
         name: form.name,
-        shortDescription: form.shortDescription.split(",").map(s => s.trim()).filter(s => s),
+        shortDescription: typeof form.shortDescription === "string"
+          ? form.shortDescription.split(",").map(s => s.trim()).filter(s => s)
+          : form.shortDescription,
         area: form.area,
         district: form.district,
         state: form.state,
         about: form.about,
-        weOffer: form.weOffer.split(",").map(w => w.trim()).filter(w => w),
+        weOffer: typeof form.weOffer === "string"
+          ? form.weOffer.split(",").map(w => w.trim()).filter(w => w)
+          : form.weOffer,
         websiteUrl: form.websiteUrl,
         gallery: form.gallery,
         aboutOurTrainers: form.aboutOurTrainers,

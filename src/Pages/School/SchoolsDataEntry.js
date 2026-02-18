@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { schoolService } from "../../services/schoolService";
-import uploadService from "../../services/uploadService";
+
 
 const SchoolsDataEntry = () => {
   const [schools, setSchools] = useState([]);
@@ -108,49 +108,7 @@ const SchoolsDataEntry = () => {
     }
   };
 
-  // Test upload function
-  const testUpload = async () => {
-    try {
-      // Create a test image blob
-      const canvas = document.createElement('canvas');
-      canvas.width = 100;
-      canvas.height = 100;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#007bff';
-      ctx.fillRect(0, 0, 100, 100);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '20px Arial';
-      ctx.fillText('Test', 30, 55);
-      
-      canvas.toBlob(async (blob) => {
-        const testFile = new File([blob], 'test.png', { type: 'image/png' });
-        
-        const formData = new FormData();
-        formData.append("file", testFile);
-        
-        try {
-          const response = await fetch("https://master-backend-18ik.onrender.com/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-          
-          const result = await response.json();
-          const fileUrl = result?.files?.[0]?.url || result?.url;
-          
-          if (fileUrl) {
-            alert(`Test upload successful!\nURL: ${fileUrl}`);
-            setFormData(prev => ({ ...prev, schoolLogo: fileUrl }));
-          } else {
-            alert("Test upload succeeded but no URL returned");
-          }
-        } catch (error) {
-          alert("Test upload failed: " + error.message);
-        }
-      }, 'image/png');
-    } catch (error) {
-      alert("Test setup failed: " + error.message);
-    }
-  };
+ 
 
   const addToArray = (field, value) => {
     if (value.trim()) {
