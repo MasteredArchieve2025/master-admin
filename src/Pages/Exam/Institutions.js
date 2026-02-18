@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { INSTITUTION_API, UPLOAD_API } from "../../api/api";
 
 const Institutions = () => {
   const { typeId } = useParams();
-  const navigate = useNavigate();
   const [list, setList] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -27,7 +26,7 @@ const Institutions = () => {
     gallery: []
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await axios.get(`${INSTITUTION_API}/type/${typeId}`);
       setList(Array.isArray(res.data) ? res.data : res.data?.data || []);
@@ -35,11 +34,11 @@ const Institutions = () => {
       console.error("Load failed", err);
       alert("Failed to load institutions");
     }
-  };
+  }, [typeId]);
 
   useEffect(() => {
     loadData();
-  }, [typeId]);
+  }, [loadData]);
 
   const uploadImage = async (e, field) => {
     const file = e.target.files[0];
@@ -48,7 +47,7 @@ const Institutions = () => {
     try {
       setUploading(true);
       const fd = new FormData();
-      fd.append("file", file); // Use "file" instead of "image"
+      fd.append("file", file);
 
       const res = await axios.post(UPLOAD_API, fd, {
         headers: {
@@ -59,9 +58,9 @@ const Institutions = () => {
       console.log("Upload response:", res.data);
 
       const url =
-        res.data?.url || 
-        res.data?.imageUrl || 
-        res.data?.data?.url || 
+        res.data?.url ||
+        res.data?.imageUrl ||
+        res.data?.data?.url ||
         res.data?.files?.[0]?.url ||
         res.data?.fileUrl;
 
@@ -70,11 +69,11 @@ const Institutions = () => {
         throw new Error("No image URL in response");
       }
 
-      if (field === 'gallery') {
-        setForm({ ...form, gallery: [...form.gallery, url] });
+      if (field === "gallery") {
+        setForm((prev) => ({ ...prev, gallery: [...prev.gallery, url] }));
         alert("Gallery image uploaded!");
       } else {
-        setForm({ ...form, [field]: url });
+        setForm((prev) => ({ ...prev, [field]: url }));
         alert("Main image uploaded!");
       }
     } catch (err) {
@@ -317,10 +316,10 @@ const Institutions = () => {
               />
             </div>
             <div className="col-md-4">
-              <input 
-                type="file" 
-                className="form-control" 
-                onChange={(e) => uploadImage(e, 'institutionImage')}
+              <input
+                type="file"
+                className="form-control"
+                onChange={(e) => uploadImage(e, "institutionImage")}
                 disabled={uploading}
               />
             </div>
@@ -335,10 +334,10 @@ const Institutions = () => {
         <div className="col-md-12">
           <div className="mb-2">
             <label className="form-label">Gallery Images</label>
-            <input 
-              type="file" 
-              className="form-control" 
-              onChange={(e) => uploadImage(e, 'gallery')}
+            <input
+              type="file"
+              className="form-control"
+              onChange={(e) => uploadImage(e, "gallery")}
               disabled={uploading}
               multiple
             />
@@ -358,9 +357,9 @@ const Institutions = () => {
                 {form.gallery.map((url, index) => (
                   <div key={index} className="col-3 col-md-2">
                     <div className="position-relative border rounded p-1">
-                      <img 
-                        src={url} 
-                        alt={`gallery-${index}`} 
+                      <img
+                        src={url}
+                        alt={`gallery-${index}`}
                         className="img-fluid rounded"
                         style={{ height: "80px", width: "100%", objectFit: "cover" }}
                       />

@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { schoolService } from "../../services/schoolService";
-
 
 const SchoolsDataEntry = () => {
   const [schools, setSchools] = useState([]);
@@ -8,21 +7,19 @@ const SchoolsDataEntry = () => {
   const [uploading, setUploading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingSchool, setEditingSchool] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     schoolName: "", category: [], schoolLogo: "", rating: 0.0,
     result: "", classes: [], classesOffered: [], teachingMode: [],
     location: "", mapLink: "", about: "", mobileNumber: "",
     whatsappNumber: "", gallery: []
   });
-  
+
   const [tempInput, setTempInput] = useState({
     category: "", teachingMode: "", classesOffered: ""
   });
 
-  useEffect(() => { fetchSchools(); }, []);
-
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
     setLoading(true);
     try {
       const response = await schoolService.getAllSchools();
@@ -32,7 +29,9 @@ const SchoolsDataEntry = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { fetchSchools(); }, [fetchSchools]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -42,15 +41,13 @@ const SchoolsDataEntry = () => {
     }));
   };
 
-  // FIXED UPLOAD FUNCTION (based on your working example)
   const handleImageUpload = async (e, field = "schoolLogo") => {
     const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) {
+    if (!file || !file.type.startsWith("image/")) {
       alert("Please select a valid image file");
       return;
     }
-    
-    // Check file size
+
     if (file.size > 10 * 1024 * 1024) {
       alert("File size must be less than 10MB");
       return;
@@ -58,15 +55,12 @@ const SchoolsDataEntry = () => {
 
     setUploading(true);
     try {
-      // Use FormData like in your working example
-      const formData = new FormData();
-      formData.append("file", file);
+      const fd = new FormData();
+      fd.append("file", file);
 
-      // Make direct API call if uploadService isn't working
       const response = await fetch("https://master-backend-18ik.onrender.com/api/upload", {
         method: "POST",
-        body: formData,
-        // Don't set Content-Type header, browser will set it with boundary
+        body: fd,
       });
 
       if (!response.ok) {
@@ -74,8 +68,7 @@ const SchoolsDataEntry = () => {
       }
 
       const result = await response.json();
-      
-      // Extract URL from response (same as your working example)
+
       const fileUrl =
         result?.files?.[0]?.url ||
         result?.files?.[0] ||
@@ -88,7 +81,7 @@ const SchoolsDataEntry = () => {
       }
 
       console.log("Upload successful, URL:", fileUrl);
-      
+
       if (field === "gallery") {
         setFormData(prev => ({
           ...prev,
@@ -97,18 +90,16 @@ const SchoolsDataEntry = () => {
       } else {
         setFormData(prev => ({ ...prev, [field]: fileUrl }));
       }
-      
+
       alert("Image uploaded successfully!");
     } catch (error) {
       console.error("Upload error:", error);
       alert("Upload failed: " + error.message);
     } finally {
       setUploading(false);
-      e.target.value = ""; // Clear file input
+      e.target.value = "";
     }
   };
-
- 
 
   const addToArray = (field, value) => {
     if (value.trim()) {
@@ -234,14 +225,6 @@ const SchoolsDataEntry = () => {
             <i className={`fas ${showForm ? "fa-times" : "fa-plus"} me-1`}></i>
             {showForm ? "Close Form" : "Add School"}
           </button>
-          {/* <button
-            className="btn btn-info btn-sm"
-            onClick={testUpload}
-            disabled={loading}
-          >
-            <i className="fas fa-vial me-1"></i>
-            Test Upload
-          </button> */}
           <button
             className="btn btn-outline-secondary btn-sm"
             onClick={fetchSchools}
@@ -268,25 +251,25 @@ const SchoolsDataEntry = () => {
                 {/* Basic Info */}
                 <div className="col-md-6">
                   <label className="form-label fw-bold">School Name *</label>
-                  <input type="text" className="form-control" name="schoolName" 
+                  <input type="text" className="form-control" name="schoolName"
                     value={formData.schoolName} onChange={handleInputChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Location *</label>
-                  <input type="text" className="form-control" name="location" 
+                  <input type="text" className="form-control" name="location"
                     value={formData.location} onChange={handleInputChange} required />
                 </div>
 
                 {/* Contact Info */}
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Mobile *</label>
-                  <input type="tel" className="form-control" name="mobileNumber" 
-                    value={formData.mobileNumber} onChange={handleInputChange} required 
+                  <input type="tel" className="form-control" name="mobileNumber"
+                    value={formData.mobileNumber} onChange={handleInputChange} required
                     pattern="[0-9]{10}" placeholder="10 digit number" />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label fw-bold">WhatsApp</label>
-                  <input type="tel" className="form-control" name="whatsappNumber" 
+                  <input type="tel" className="form-control" name="whatsappNumber"
                     value={formData.whatsappNumber} onChange={handleInputChange}
                     pattern="[0-9]{10}" placeholder="Optional" />
                 </div>
@@ -294,36 +277,34 @@ const SchoolsDataEntry = () => {
                 {/* Rating & Logo */}
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Rating (0-5)</label>
-                  <input type="number" step="0.1" min="0" max="5" className="form-control" 
+                  <input type="number" step="0.1" min="0" max="5" className="form-control"
                     name="rating" value={formData.rating} onChange={handleInputChange} />
                 </div>
                 <div className="col-md-8">
                   <label className="form-label fw-bold">School Logo</label>
                   <div className="input-group">
-                    <input type="text" className="form-control" 
-                      value={formData.schoolLogo} 
-                      onChange={(e) => setFormData(prev => ({...prev, schoolLogo: e.target.value}))}
+                    <input type="text" className="form-control"
+                      value={formData.schoolLogo}
+                      onChange={(e) => setFormData(prev => ({ ...prev, schoolLogo: e.target.value }))}
                       placeholder="Image URL or upload" />
                     <label className="btn btn-outline-primary">
                       {uploading ? (
                         <span className="spinner-border spinner-border-sm me-1"></span>
                       ) : (
-                        <>
-                          <i className="fas fa-upload me-1"></i> Upload
-                        </>
+                        <><i className="fas fa-upload me-1"></i> Upload</>
                       )}
-                      <input type="file" className="d-none" accept="image/*" 
+                      <input type="file" className="d-none" accept="image/*"
                         onChange={(e) => handleImageUpload(e, "schoolLogo")} disabled={uploading} />
                     </label>
                   </div>
                   {formData.schoolLogo && (
                     <div className="mt-2">
-                      <img src={formData.schoolLogo} alt="Logo" className="img-thumbnail" 
-                        style={{width: 60, height: 60, objectFit: 'cover'}}
+                      <img src={formData.schoolLogo} alt="Logo" className="img-thumbnail"
+                        style={{ width: 60, height: 60, objectFit: "cover" }}
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = 
-                            '<span class="badge bg-info">Image URL Provided</span>';
+                          e.target.style.display = "none";
+                          e.target.parentElement.innerHTML =
+                            "<span class='badge bg-info'>Image URL Provided</span>";
                         }} />
                     </div>
                   )}
@@ -333,12 +314,12 @@ const SchoolsDataEntry = () => {
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Category</label>
                   <div className="input-group">
-                    <input type="text" className="form-control" 
-                      value={tempInput.category} 
-                      onChange={(e) => setTempInput(prev => ({...prev, category: e.target.value}))}
+                    <input type="text" className="form-control"
+                      value={tempInput.category}
+                      onChange={(e) => setTempInput(prev => ({ ...prev, category: e.target.value }))}
                       placeholder="e.g., CBSE" />
                     <button type="button" className="btn btn-primary"
-                      onClick={() => addToArray('category', tempInput.category)}>
+                      onClick={() => addToArray("category", tempInput.category)}>
                       <i className="fas fa-plus"></i>
                     </button>
                   </div>
@@ -346,9 +327,9 @@ const SchoolsDataEntry = () => {
                     {formData.category.map((cat, idx) => (
                       <span key={idx} className="badge bg-primary">
                         {cat}
-                        <button type="button" className="ms-1 btn-close btn-close-white" 
-                          style={{fontSize: '0.5rem'}} 
-                          onClick={() => removeFromArray('category', idx)} />
+                        <button type="button" className="ms-1 btn-close btn-close-white"
+                          style={{ fontSize: "0.5rem" }}
+                          onClick={() => removeFromArray("category", idx)} />
                       </span>
                     ))}
                   </div>
@@ -358,12 +339,12 @@ const SchoolsDataEntry = () => {
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Teaching Mode</label>
                   <div className="input-group">
-                    <input type="text" className="form-control" 
-                      value={tempInput.teachingMode} 
-                      onChange={(e) => setTempInput(prev => ({...prev, teachingMode: e.target.value}))}
+                    <input type="text" className="form-control"
+                      value={tempInput.teachingMode}
+                      onChange={(e) => setTempInput(prev => ({ ...prev, teachingMode: e.target.value }))}
                       placeholder="e.g., Offline" />
                     <button type="button" className="btn btn-success"
-                      onClick={() => addToArray('teachingMode', tempInput.teachingMode)}>
+                      onClick={() => addToArray("teachingMode", tempInput.teachingMode)}>
                       <i className="fas fa-plus"></i>
                     </button>
                   </div>
@@ -371,9 +352,9 @@ const SchoolsDataEntry = () => {
                     {formData.teachingMode.map((mode, idx) => (
                       <span key={idx} className="badge bg-success">
                         {mode}
-                        <button type="button" className="ms-1 btn-close btn-close-white" 
-                          style={{fontSize: '0.5rem'}} 
-                          onClick={() => removeFromArray('teachingMode', idx)} />
+                        <button type="button" className="ms-1 btn-close btn-close-white"
+                          style={{ fontSize: "0.5rem" }}
+                          onClick={() => removeFromArray("teachingMode", idx)} />
                       </span>
                     ))}
                   </div>
@@ -383,12 +364,12 @@ const SchoolsDataEntry = () => {
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Classes Offered</label>
                   <div className="input-group">
-                    <input type="text" className="form-control" 
-                      value={tempInput.classesOffered} 
-                      onChange={(e) => setTempInput(prev => ({...prev, classesOffered: e.target.value}))}
+                    <input type="text" className="form-control"
+                      value={tempInput.classesOffered}
+                      onChange={(e) => setTempInput(prev => ({ ...prev, classesOffered: e.target.value }))}
                       placeholder="e.g., Swimming" />
                     <button type="button" className="btn btn-info"
-                      onClick={() => addToArray('classesOffered', tempInput.classesOffered)}>
+                      onClick={() => addToArray("classesOffered", tempInput.classesOffered)}>
                       <i className="fas fa-plus"></i>
                     </button>
                   </div>
@@ -396,9 +377,9 @@ const SchoolsDataEntry = () => {
                     {formData.classesOffered.map((item, idx) => (
                       <span key={idx} className="badge bg-info">
                         {item}
-                        <button type="button" className="ms-1 btn-close btn-close-white" 
-                          style={{fontSize: '0.5rem'}} 
-                          onClick={() => removeFromArray('classesOffered', idx)} />
+                        <button type="button" className="ms-1 btn-close btn-close-white"
+                          style={{ fontSize: "0.5rem" }}
+                          onClick={() => removeFromArray("classesOffered", idx)} />
                       </span>
                     ))}
                   </div>
@@ -408,7 +389,7 @@ const SchoolsDataEntry = () => {
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Gallery Images</label>
                   <div className="input-group">
-                    <input type="file" className="form-control" accept="image/*" 
+                    <input type="file" className="form-control" accept="image/*"
                       onChange={(e) => handleImageUpload(e, "gallery")} disabled={uploading} />
                     <span className="input-group-text">
                       {uploading ? (
@@ -421,10 +402,10 @@ const SchoolsDataEntry = () => {
                   <div className="d-flex flex-wrap gap-1 mt-2">
                     {formData.gallery.map((img, idx) => (
                       <span key={idx} className="badge bg-secondary">
-                        <i className="fas fa-image me-1"></i>Image {idx+1}
-                        <button type="button" className="ms-1 btn-close btn-close-white" 
-                          style={{fontSize: '0.5rem'}} 
-                          onClick={() => removeFromArray('gallery', idx)} />
+                        <i className="fas fa-image me-1"></i>Image {idx + 1}
+                        <button type="button" className="ms-1 btn-close btn-close-white"
+                          style={{ fontSize: "0.5rem" }}
+                          onClick={() => removeFromArray("gallery", idx)} />
                       </span>
                     ))}
                   </div>
@@ -433,23 +414,23 @@ const SchoolsDataEntry = () => {
                 {/* Map Link & Result */}
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Map Link</label>
-                  <input type="text" className="form-control" name="mapLink" 
-                    value={formData.mapLink} onChange={handleInputChange} 
+                  <input type="text" className="form-control" name="mapLink"
+                    value={formData.mapLink} onChange={handleInputChange}
                     placeholder="Google Maps URL" />
                 </div>
 
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Result/Performance</label>
-                  <input type="text" className="form-control" name="result" 
-                    value={formData.result} onChange={handleInputChange} 
+                  <input type="text" className="form-control" name="result"
+                    value={formData.result} onChange={handleInputChange}
                     placeholder="e.g., 95% pass rate" />
                 </div>
 
                 {/* About */}
                 <div className="col-12">
                   <label className="form-label fw-bold">About School</label>
-                  <textarea className="form-control" name="about" rows="3" 
-                    value={formData.about} onChange={handleInputChange} 
+                  <textarea className="form-control" name="about" rows="3"
+                    value={formData.about} onChange={handleInputChange}
                     placeholder="Describe the school..." />
                 </div>
 
@@ -459,7 +440,7 @@ const SchoolsDataEntry = () => {
                     <button type="button" className="btn btn-secondary" onClick={resetForm}>
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary" 
+                    <button type="submit" className="btn btn-primary"
                       disabled={loading || uploading}>
                       {loading ? (
                         <>
@@ -511,7 +492,7 @@ const SchoolsDataEntry = () => {
                     <th className="d-none d-md-table-cell">Location</th>
                     <th>Rating</th>
                     <th className="d-none d-sm-table-cell">Contact</th>
-                    <th style={{ minWidth: '140px' }} className="text-center">Actions</th>
+                    <th style={{ minWidth: "140px" }} className="text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -520,8 +501,8 @@ const SchoolsDataEntry = () => {
                       <td>
                         <div className="d-flex align-items-center">
                           {school.schoolLogo && (
-                            <img src={school.schoolLogo} alt="" className="rounded-circle me-2" 
-                              style={{width: 40, height: 40, objectFit: 'cover'}} />
+                            <img src={school.schoolLogo} alt="" className="rounded-circle me-2"
+                              style={{ width: 40, height: 40, objectFit: "cover" }} />
                           )}
                           <div>
                             <strong className="d-block">{school.schoolName}</strong>
@@ -537,7 +518,7 @@ const SchoolsDataEntry = () => {
                       <td className="d-none d-md-table-cell">
                         <small>{school.location}</small>
                         {school.mapLink && (
-                          <a href={school.mapLink} target="_blank" rel="noopener noreferrer" 
+                          <a href={school.mapLink} target="_blank" rel="noopener noreferrer"
                             className="d-block text-primary small">
                             <i className="fas fa-map-marker-alt me-1"></i>View Map
                           </a>
@@ -565,11 +546,11 @@ const SchoolsDataEntry = () => {
                       </td>
                       <td>
                         <div className="d-flex justify-content-center gap-2">
-                          <button className="btn btn-sm btn-outline-primary" 
+                          <button className="btn btn-sm btn-outline-primary"
                             onClick={() => handleEdit(school)} title="Edit">
                             <i className="fas fa-edit me-1"></i>Edit
                           </button>
-                          <button className="btn btn-sm btn-outline-danger" 
+                          <button className="btn btn-sm btn-outline-danger"
                             onClick={() => handleDelete(school.id)} title="Delete">
                             <i className="fas fa-trash me-1"></i>Delete
                           </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { EXAM_TYPE_API, UPLOAD_API } from "../../api/api";
@@ -15,7 +15,7 @@ const ExamTypes = () => {
     image: "",
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await axios.get(`${EXAM_TYPE_API}/category/${categoryId}`);
       setList(Array.isArray(res.data) ? res.data : []);
@@ -23,11 +23,11 @@ const ExamTypes = () => {
       console.error("Load failed", err);
       alert("Failed to load exam types");
     }
-  };
+  }, [categoryId]);
 
   useEffect(() => {
     if (categoryId) loadData();
-  }, [categoryId]);
+  }, [categoryId, loadData]);
 
   const uploadImage = async (e) => {
     const file = e.target.files[0];
@@ -35,7 +35,7 @@ const ExamTypes = () => {
 
     try {
       const fd = new FormData();
-      fd.append("file", file); // Use "file"
+      fd.append("file", file);
 
       const res = await axios.post(UPLOAD_API, fd, {
         headers: {
@@ -44,14 +44,14 @@ const ExamTypes = () => {
       });
 
       const url =
-        res.data?.url || 
-        res.data?.imageUrl || 
-        res.data?.data?.url || 
+        res.data?.url ||
+        res.data?.imageUrl ||
+        res.data?.data?.url ||
         res.data?.files?.[0]?.url ||
         res.data?.fileUrl;
 
       if (!url) throw new Error("No image URL");
-      setForm({ ...form, image: url });
+      setForm((prev) => ({ ...prev, image: url }));
       alert("Image uploaded!");
     } catch (err) {
       console.error("Upload failed", err);
