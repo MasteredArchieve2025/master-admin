@@ -31,8 +31,13 @@ import ExtraSkillCategories from "./Pages/ExtraSkill/ExtraSkillCategories";
 import ExtraSkillTypes from "./Pages/ExtraSkill/ExtraSkillTypes";
 import ExtraSkillInstitutions from "./Pages/ExtraSkill/ExtraSkillInstitutions";
 
+// Course Module
+import CourseCategories from "./Pages/Course/CourseCategories";
+import CourseItems from "./Pages/Course/CourseItems";
+import CourseProviders from "./Pages/Course/CourseProviders";
+
 // Other Modules
-import Course from "./Pages/Course/Course";
+
 import IQ from "./Pages/IQ/IQCRM";
 import OnlineTutorials from "./Pages/OnlineTutorials/OnlineTutorials";
 import TopRated from "./Pages/TopRated/TopRated";
@@ -130,7 +135,15 @@ function App() {
           {/* ==========================
               COURSE MODULE
              ========================== */}
-          <Route path="course" element={<Course />} />
+        
+          <Route path="course-categories" element={<CourseCategories />} /> 
+       
+          <Route path="course-categories/:categoryId/items" element={<CourseItems />} />
+              
+          <Route path="course-items/:itemId/providers"  element={<CourseProviders />} />
+            
+           
+         
 
           {/* ==========================
               IQ MODULE

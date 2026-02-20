@@ -43,7 +43,7 @@ const Sidebar = () => {
         </NavLink>
 
         {/* Course */}
-        <NavLink to="/course">
+        <NavLink to="/course-categories">
           <FaBook /> Course
         </NavLink>
 

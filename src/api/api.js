@@ -32,3 +32,19 @@ export const SKILL_TYPE_API = `${baseUrl}/api/extra-skill-types`;
 
 // Skill Institutions (Academies, Training Centers)
 export const SKILL_INSTITUTION_API = `${baseUrl}/api/extra-skill-institutions`;
+
+
+
+
+
+
+/* ================= COURSE MODULE ================= */
+
+// Course Categories (Course1)
+export const COURSE_CATEGORY_API = `${baseUrl}/api/course-categories`;
+
+// Course Items / Sub Courses (Course2)
+export const COURSE_ITEM_API = `${baseUrl}/api/course-items`;
+
+// Course Providers / Institutes (Course3)
+export const COURSE_PROVIDER_API = `${baseUrl}/api/course-providers`;
