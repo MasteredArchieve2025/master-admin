@@ -31,6 +31,10 @@ import ExtraSkillCategories from "./Pages/ExtraSkill/ExtraSkillCategories";
 import ExtraSkillTypes from "./Pages/ExtraSkill/ExtraSkillTypes";
 import ExtraSkillInstitutions from "./Pages/ExtraSkill/ExtraSkillInstitutions";
 
+//jobs
+import JobCategories from "./Pages/Job/JobCategories";
+import JobDetails from "./Pages/Job/JobDetails";
+
 // Course Module
 import CourseCategories from "./Pages/Course/CourseCategories";
 import CourseItems from "./Pages/Course/CourseItems";
@@ -83,6 +87,14 @@ function App() {
             path="degrees/:degreeId/colleges"
             element={<CollegeDetails />}
           />
+
+          {/* ==========================
+              JOB MODULE
+             ========================== */}
+          <Route path="job-categories" element={<JobCategories />} />
+          <Route path="/job-categories/:categoryId/details" element={<JobDetails />} />
+          <Route path="/job-details" element={<JobDetails />} /> 
+
 
           {/* ==========================
               EXAM MODULE

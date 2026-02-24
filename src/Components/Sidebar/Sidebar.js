@@ -52,6 +52,11 @@ const Sidebar = () => {
           <FaLayerGroup /> Exam
         </NavLink>
 
+         {/* jobs */}
+        <NavLink to="/job-categories">
+          <FaLayerGroup /> Jobs
+        </NavLink>
+
         {/* Blogs */}
         <NavLink to="/blogs">
           <FaClipboardList /> Blogs
@@ -67,15 +72,7 @@ const Sidebar = () => {
           <FaTools /> Extra Skill
         </NavLink>
 
-        {/* Online Tutorials */}
-        <NavLink to="/online-tutorials">
-          <FaVideo /> Online Tutorials
-        </NavLink>
-
-        {/* Top Rated */}
-        <NavLink to="/top-rated">
-          <FaStar /> Top Rated
-        </NavLink>
+       
 
       </nav>
     </div>
