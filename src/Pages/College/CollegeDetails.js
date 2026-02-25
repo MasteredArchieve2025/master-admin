@@ -1,27 +1,28 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { COLLEGE_API, UPLOAD_API } from "../../api/api";
 
 const Colleges = () => {
   const { degreeId: degreeIdFromUrl } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const categoryId = Number(location.state?.categoryId);
   const degreeId = Number(location.state?.degreeId || degreeIdFromUrl);
 
   const [colleges, setColleges] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const emptyForm = {
     name: "",
     shortName: "",
-    ownership: "",
-    collegeStatus: "",
-    affiliatedUniversity: "",
+    ownership: "Private",
+    collegeStatus: "Autonomous",
+    affiliatedUniversity: "Anna University",
     address: "",
     city: "",
     state: "",
@@ -44,14 +45,30 @@ const Colleges = () => {
 
   /* ================= LOAD ================= */
   const loadColleges = useCallback(async () => {
+    if (!degreeId) return;
+
     try {
       setLoading(true);
+      setError("");
+      
       const res = await axios.get(COLLEGE_API);
-      const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setColleges(data.filter((c) => Number(c.degreeId) === degreeId));
+      
+      // Handle different response formats
+      let data = [];
+      if (Array.isArray(res.data)) {
+        data = res.data;
+      } else if (res.data?.data && Array.isArray(res.data.data)) {
+        data = res.data.data;
+      } else if (res.data?.colleges && Array.isArray(res.data.colleges)) {
+        data = res.data.colleges;
+      }
+
+      // Filter by degreeId
+      const filtered = data.filter((c) => Number(c.degreeId) === degreeId);
+      setColleges(filtered);
     } catch (err) {
       console.error("Error loading colleges:", err);
-      setError("Failed to load colleges");
+      setError(err.response?.data?.message || "Failed to load colleges");
     } finally {
       setLoading(false);
     }
@@ -68,24 +85,46 @@ const Colleges = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size should be less than 5MB");
+      return;
+    }
+
     try {
+      setLoading(true);
+      setError("");
+      
       const fd = new FormData();
       fd.append("file", file);
 
-      const res = await axios.post(UPLOAD_API, fd);
-      const url =
-        res.data?.url || res.data?.data?.url || res.data?.files?.[0]?.url;
+      const res = await axios.post(UPLOAD_API, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const url = res.data?.url || 
+                  res.data?.data?.url || 
+                  res.data?.fileUrl || 
+                  res.data?.path;
 
       if (url) {
         setForm((p) => ({ ...p, [field]: url }));
         setSuccess("Image uploaded successfully!");
         setTimeout(() => setSuccess(""), 3000);
       } else {
-        setError("Failed to upload image");
+        throw new Error("No image URL received from server");
       }
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Failed to upload image");
+      setError(err.response?.data?.message || "Failed to upload image");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,6 +134,7 @@ const Colleges = () => {
     setError("");
     setSuccess("");
 
+    // Validate required fields
     const requiredFields = {
       name: "College Name",
       shortName: "Short Name",
@@ -114,474 +154,488 @@ const Colleges = () => {
       return setError("Category and Degree are required");
     }
 
-    const payload = {
-      name: form.name.trim(),
-      shortName: form.shortName.trim(),
-      categoryId: categoryId,
-      degreeId: degreeId,
-      ownership: (form.ownership.trim() || "Private").replace("PARIVATE", "PRIVATE"),
-      collegeStatus: form.collegeStatus.trim() || "Autonomous",
-      affiliatedUniversity: form.affiliatedUniversity.trim() || "Anna University",
-      address: form.address.trim() || "Address not specified",
-      city: form.city.trim(),
-      state: form.state.trim(),
-      aboutCollege: form.aboutCollege.trim() || "About college information",
-      academics: form.academics.trim() || "Academics information",
-      placementInfo: form.placementInfo.trim() || "Placement information",
-      admissionInfo: form.admissionInfo.trim() || "Admission information",
-      phone: form.phone.trim() ? form.phone.trim().replace(/\D/g, "") : "0000000000",
-      whatsapp: form.whatsapp.trim() ? form.whatsapp.trim().replace(/\D/g, "") : "0000000000",
-      email: form.email.trim() || "info@college.com",
-      website: form.website.trim() || "https://college.com",
-      mapLink: form.mapLink.trim() || "https://maps.google.com",
-      logo: form.logo.trim() || "https://example.com/logo.png",
-      collegeImage: form.collegeImage.trim() || "https://example.com/college.png",
-    };
-
-    if (form.departments?.trim()) {
-      payload.departments = form.departments.split(",").map((d) => d.trim()).filter((d) => d !== "");
-    } else {
-      payload.departments = ["CSE", "ECE", "EEE", "Mechanical"];
-    }
-
-    if (form.facilities?.trim()) {
-      payload.facilities = form.facilities.split(",").map((f) => f.trim()).filter((f) => f !== "");
-    } else {
-      payload.facilities = ["Library", "Hostel", "Transport"];
-    }
-
-    console.log("Submitting payload:", JSON.stringify(payload, null, 2));
-
     try {
       setLoading(true);
-      let response;
 
+      // Process comma-separated fields
+      const departments = form.departments
+        ? form.departments.split(",").map(d => d.trim()).filter(d => d)
+        : ["CSE", "ECE", "EEE", "Mechanical"];
+
+      const facilities = form.facilities
+        ? form.facilities.split(",").map(f => f.trim()).filter(f => f)
+        : ["Library", "Hostel", "Transport"];
+
+      const payload = {
+        name: form.name.trim(),
+        shortName: form.shortName.trim(),
+        categoryId: Number(categoryId),
+        degreeId: Number(degreeId),
+        ownership: form.ownership || "Private",
+        collegeStatus: form.collegeStatus || "Autonomous",
+        affiliatedUniversity: form.affiliatedUniversity.trim() || "Anna University",
+        address: form.address.trim() || "Address not specified",
+        city: form.city.trim(),
+        state: form.state.trim(),
+        aboutCollege: form.aboutCollege.trim() || "About college information",
+        academics: form.academics.trim() || "Academics information",
+        departments: departments,
+        facilities: facilities,
+        placementInfo: form.placementInfo.trim() || "Placement information",
+        admissionInfo: form.admissionInfo.trim() || "Admission information",
+        phone: form.phone.trim().replace(/\D/g, "") || "0000000000",
+        whatsapp: form.whatsapp.trim().replace(/\D/g, "") || "0000000000",
+        email: form.email.trim() || "info@college.com",
+        website: form.website.trim() || "https://college.com",
+        mapLink: form.mapLink.trim() || "https://maps.google.com",
+        logo: form.logo.trim() || "https://via.placeholder.com/100",
+        collegeImage: form.collegeImage.trim() || "https://via.placeholder.com/300",
+      };
+
+      console.log("Submitting payload:", payload);
+
+      let response;
       if (editingId) {
-        response = await axios.put(`${COLLEGE_API}/${editingId}`, payload);
+        const id = editingId.id || editingId;
+        response = await axios.put(`${COLLEGE_API}/${id}`, payload);
       } else {
         response = await axios.post(COLLEGE_API, payload);
       }
 
       console.log("Server response:", response.data);
 
+      setSuccess(editingId ? "College updated successfully!" : "College added successfully!");
       setForm(emptyForm);
       setEditingId(null);
-      setSuccess(editingId ? "College updated successfully!" : "College added successfully!");
+      await loadColleges();
       setTimeout(() => setSuccess(""), 3000);
-      await loadColleges();
     } catch (err) {
-      console.error("FULL ERROR DETAILS:", {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        headers: err.response?.headers,
-        config: {
-          url: err.config?.url,
-          method: err.config?.method,
-          data: err.config?.data,
-        },
-      });
-
-      const errorData = err.response?.data;
-      let errorMessage = "Server error while saving college";
-
-      if (errorData) {
-        if (typeof errorData === "string") {
-          errorMessage = errorData;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.errors) {
-          const errors = errorData.errors;
-          errorMessage = Array.isArray(errors)
-            ? errors.map((e) => `${e.path || e.field}: ${e.message || e.msg}`).join(", ")
-            : JSON.stringify(errors);
-        } else {
-          errorMessage = JSON.stringify(errorData);
-        }
-      }
-
-      setError(`Error: ${errorMessage}`);
-      console.error("Error message:", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= TEST WITH MINIMAL PAYLOAD ================= */
-  const testMinimalPayload = async () => {
-    const minimalPayload = {
-      name: "Test College",
-      shortName: "TC",
-      categoryId: 1,
-      degreeId: 1,
-      ownership: "Private",
-      collegeStatus: "Autonomous",
-      affiliatedUniversity: "Anna University",
-      address: "Test Address",
-      city: "Test City",
-      state: "Test State",
-      aboutCollege: "Test about",
-      academics: "Test academics",
-      departments: ["CSE"],
-      facilities: ["Library"],
-      placementInfo: "Test placement",
-      admissionInfo: "Test admission",
-      phone: "9876543210",
-      whatsapp: "9876543210",
-      email: "test@college.com",
-      website: "https://test.com",
-      mapLink: "https://maps.google.com",
-      logo: "https://example.com/logo.png",
-      collegeImage: "https://example.com/college.png",
-    };
-
-    console.log("Testing with minimal payload:", minimalPayload);
-    setError("");
-    setSuccess("Testing...");
-
-    try {
-      setLoading(true);
-      const response = await axios.post(COLLEGE_API, minimalPayload);
-      console.log("Minimal test success:", response.data);
-      setSuccess("Minimal payload test successful! " + JSON.stringify(response.data));
-      await loadColleges();
-    } catch (err) {
-      console.error("Minimal test failed:", err.response?.data || err.message);
-      setError(`Minimal test failed: ${JSON.stringify(err.response?.data || err.message)}`);
+      console.error("Save failed:", err);
+      console.error("Error response:", err.response?.data);
+      
+      const errorMsg = err.response?.data?.message || 
+                       err.response?.data?.error || 
+                       "Failed to save college";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   /* ================= EDIT ================= */
-  const edit = (c) => {
-    setEditingId(c.id);
+  const edit = (college) => {
+    setEditingId(college.id || college._id);
     setForm({
       ...emptyForm,
-      ...c,
-      departments: Array.isArray(c.departments) ? c.departments.join(", ") : c.departments || "",
-      facilities: Array.isArray(c.facilities) ? c.facilities.join(", ") : c.facilities || "",
+      name: college.name || "",
+      shortName: college.shortName || "",
+      ownership: college.ownership || "Private",
+      collegeStatus: college.collegeStatus || "Autonomous",
+      affiliatedUniversity: college.affiliatedUniversity || "",
+      address: college.address || "",
+      city: college.city || "",
+      state: college.state || "",
+      aboutCollege: college.aboutCollege || "",
+      academics: college.academics || "",
+      departments: Array.isArray(college.departments) ? college.departments.join(", ") : college.departments || "",
+      facilities: Array.isArray(college.facilities) ? college.facilities.join(", ") : college.facilities || "",
+      placementInfo: college.placementInfo || "",
+      admissionInfo: college.admissionInfo || "",
+      phone: college.phone || "",
+      whatsapp: college.whatsapp || "",
+      email: college.email || "",
+      website: college.website || "",
+      mapLink: college.mapLink || "",
+      logo: college.logo || "",
+      collegeImage: college.collegeImage || "",
     });
   };
 
-  /* ================= REMOVE ================= */
+  /* ================= DELETE ================= */
   const remove = async (id) => {
     if (!window.confirm("Are you sure you want to delete this college?")) return;
 
     try {
       setLoading(true);
+      setError("");
+      
       await axios.delete(`${COLLEGE_API}/${id}`);
-      await loadColleges();
       setSuccess("College deleted successfully!");
+      await loadColleges();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Delete error:", err);
-      setError("Failed to delete college");
+      setError(err.response?.data?.message || "Failed to delete college");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= CANCEL EDIT ================= */
-  const cancelEdit = () => {
-    setEditingId(null);
+  const reset = () => {
     setForm(emptyForm);
+    setEditingId(null);
     setError("");
-    setSuccess("");
   };
 
   return (
     <div className="container mt-4">
-      <h3>{editingId ? "Update College" : "Add College"}</h3>
-      <p className="text-muted">
-        Category ID: {categoryId} | Degree ID: {degreeId}
-      </p>
-
-      <div className="mb-3">
-        <button
-          className="btn btn-info btn-sm me-2"
-          onClick={testMinimalPayload}
-          disabled={loading}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h3>Colleges Management</h3>
+        <button 
+          className="btn btn-secondary" 
+          onClick={() => navigate(-1)}
         >
-          Test with Minimal Payload
+          ← Back
         </button>
       </div>
 
+      <div className="alert alert-info">
+        <strong>Category ID:</strong> {categoryId} | <strong>Degree ID:</strong> {degreeId}
+      </div>
+
       {error && (
-        <div className="alert alert-danger" role="alert">
-          <strong>Error Details:</strong>
-          <pre style={{ whiteSpace: "pre-wrap", fontSize: "12px", margin: "10px 0" }}>
-            {error}
-          </pre>
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          {error}
+          <button type="button" className="btn-close" onClick={() => setError("")}></button>
         </div>
       )}
 
       {success && (
-        <div className="alert alert-success" role="alert">
-          <strong>Success!</strong> {success}
+        <div className="alert alert-success alert-dismissible fade show" role="alert">
+          {success}
+          <button type="button" className="btn-close" onClick={() => setSuccess("")}></button>
         </div>
       )}
 
-      <form className="row g-3 mb-4" onSubmit={submit}>
-        <div className="col-md-6">
-          <label className="form-label">College Name <span className="text-danger">*</span></label>
-          <input
-            className="form-control"
-            placeholder="College Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
+      {/* ================= FORM ================= */}
+      <div className="card mb-4">
+        <div className="card-header bg-primary text-white">
+          {editingId ? "Edit College" : "Add New College"}
         </div>
+        <div className="card-body">
+          <form onSubmit={submit}>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label">College Name *</label>
+                <input
+                  className="form-control"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
 
-        <div className="col-md-6">
-          <label className="form-label">Short Name <span className="text-danger">*</span></label>
-          <input
-            className="form-control"
-            placeholder="Short Name"
-            value={form.shortName}
-            onChange={(e) => setForm({ ...form, shortName: e.target.value })}
-            required
-          />
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Short Name *</label>
+                <input
+                  className="form-control"
+                  value={form.shortName}
+                  onChange={(e) => setForm({ ...form, shortName: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Ownership</label>
+                <select
+                  className="form-control"
+                  value={form.ownership}
+                  onChange={(e) => setForm({ ...form, ownership: e.target.value })}
+                  disabled={loading}
+                >
+                  <option value="Private">Private</option>
+                  <option value="Government">Government</option>
+                  <option value="Semi-Government">Semi-Government</option>
+                  <option value="Autonomous">Autonomous</option>
+                </select>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">College Status</label>
+                <select
+                  className="form-control"
+                  value={form.collegeStatus}
+                  onChange={(e) => setForm({ ...form, collegeStatus: e.target.value })}
+                  disabled={loading}
+                >
+                  <option value="Autonomous">Autonomous</option>
+                  <option value="Affiliated">Affiliated</option>
+                  <option value="Deemed University">Deemed University</option>
+                  <option value="Private University">Private University</option>
+                  <option value="Government University">Government University</option>
+                </select>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Affiliated University</label>
+                <input
+                  className="form-control"
+                  value={form.affiliatedUniversity}
+                  onChange={(e) => setForm({ ...form, affiliatedUniversity: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">City *</label>
+                <input
+                  className="form-control"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">State *</label>
+                <input
+                  className="form-control"
+                  value={form.state}
+                  onChange={(e) => setForm({ ...form, state: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Address</label>
+                <input
+                  className="form-control"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Phone (10 digits)</label>
+                <input
+                  className="form-control"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  maxLength="10"
+                  pattern="[0-9]*"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">WhatsApp (10 digits)</label>
+                <input
+                  className="form-control"
+                  value={form.whatsapp}
+                  onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                  maxLength="10"
+                  pattern="[0-9]*"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Email</label>
+                <input
+                  className="form-control"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Website</label>
+                <input
+                  className="form-control"
+                  type="url"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Map Link</label>
+                <input
+                  className="form-control"
+                  type="url"
+                  value={form.mapLink}
+                  onChange={(e) => setForm({ ...form, mapLink: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">About College</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={form.aboutCollege}
+                  onChange={(e) => setForm({ ...form, aboutCollege: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">Academics</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={form.academics}
+                  onChange={(e) => setForm({ ...form, academics: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">Departments (comma-separated)</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={form.departments}
+                  onChange={(e) => setForm({ ...form, departments: e.target.value })}
+                  placeholder="CSE, ECE, EEE, Mechanical"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">Facilities (comma-separated)</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={form.facilities}
+                  onChange={(e) => setForm({ ...form, facilities: e.target.value })}
+                  placeholder="Library, Hostel, Transport"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">Placement Information</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={form.placementInfo}
+                  onChange={(e) => setForm({ ...form, placementInfo: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-12 mb-3">
+                <label className="form-label">Admission Information</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  value={form.admissionInfo}
+                  onChange={(e) => setForm({ ...form, admissionInfo: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Logo URL</label>
+                <div className="input-group">
+                  <input
+                    className="form-control"
+                    value={form.logo}
+                    onChange={(e) => setForm({ ...form, logo: e.target.value })}
+                    disabled={loading}
+                  />
+                  <label className="input-group-text" style={{ cursor: "pointer" }}>
+                    <input
+                      type="file"
+                      className="d-none"
+                      onChange={(e) => uploadImage(e, "logo")}
+                      accept="image/*"
+                      disabled={loading}
+                    />
+                    Upload
+                  </label>
+                </div>
+                {form.logo && (
+                  <img 
+                    src={form.logo} 
+                    alt="Logo preview" 
+                    style={{ width: "60px", height: "60px", objectFit: "contain", marginTop: "8px" }}
+                    onError={(e) => { e.target.src = "https://via.placeholder.com/60"; }}
+                  />
+                )}
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label className="form-label">College Image URL</label>
+                <div className="input-group">
+                  <input
+                    className="form-control"
+                    value={form.collegeImage}
+                    onChange={(e) => setForm({ ...form, collegeImage: e.target.value })}
+                    disabled={loading}
+                  />
+                  <label className="input-group-text" style={{ cursor: "pointer" }}>
+                    <input
+                      type="file"
+                      className="d-none"
+                      onChange={(e) => uploadImage(e, "collegeImage")}
+                      accept="image/*"
+                      disabled={loading}
+                    />
+                    Upload
+                  </label>
+                </div>
+                {form.collegeImage && (
+                  <img 
+                    src={form.collegeImage} 
+                    alt="College preview" 
+                    style={{ width: "60px", height: "60px", objectFit: "cover", marginTop: "8px" }}
+                    onError={(e) => { e.target.src = "https://via.placeholder.com/60"; }}
+                  />
+                )}
+              </div>
+
+              <div className="col-12">
+                <button 
+                  className="btn btn-primary" 
+                  type="submit" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      {editingId ? "Updating..." : "Adding..."}
+                    </>
+                  ) : (
+                    editingId ? "Update College" : "Add College"
+                  )}
+                </button>
+
+                {editingId && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary ms-2"
+                    onClick={reset}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
         </div>
+      </div>
 
-        <div className="col-md-6">
-          <label className="form-label">City <span className="text-danger">*</span></label>
-          <input
-            className="form-control"
-            placeholder="City"
-            value={form.city}
-            onChange={(e) => setForm({ ...form, city: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">State <span className="text-danger">*</span></label>
-          <input
-            className="form-control"
-            placeholder="State"
-            value={form.state}
-            onChange={(e) => setForm({ ...form, state: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Ownership *</label>
-          <select
-            className="form-control"
-            value={form.ownership}
-            onChange={(e) => setForm({ ...form, ownership: e.target.value })}
-            required
-          >
-            <option value="">Select Ownership</option>
-            <option value="Private">Private</option>
-            <option value="Government">Government</option>
-            <option value="Semi-Government">Semi-Government</option>
-            <option value="Autonomous">Autonomous</option>
-          </select>
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">College Status *</label>
-          <select
-            className="form-control"
-            value={form.collegeStatus}
-            onChange={(e) => setForm({ ...form, collegeStatus: e.target.value })}
-            required
-          >
-            <option value="">Select Status</option>
-            <option value="Autonomous">Autonomous</option>
-            <option value="Affiliated">Affiliated</option>
-            <option value="Deemed University">Deemed University</option>
-            <option value="Private University">Private University</option>
-            <option value="Government University">Government University</option>
-          </select>
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Affiliated University *</label>
-          <input
-            className="form-control"
-            placeholder="Affiliated University"
-            value={form.affiliatedUniversity}
-            onChange={(e) => setForm({ ...form, affiliatedUniversity: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Address *</label>
-          <input
-            className="form-control"
-            placeholder="Address"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Phone *</label>
-          <input
-            className="form-control"
-            placeholder="Phone (10 digits)"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            required
-            pattern="[0-9]{10}"
-            title="10 digit phone number"
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">WhatsApp *</label>
-          <input
-            className="form-control"
-            placeholder="WhatsApp (10 digits)"
-            value={form.whatsapp}
-            onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-            required
-            pattern="[0-9]{10}"
-            title="10 digit WhatsApp number"
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Email *</label>
-          <input
-            className="form-control"
-            placeholder="Email"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Website *</label>
-          <input
-            className="form-control"
-            placeholder="Website URL"
-            type="url"
-            value={form.website}
-            onChange={(e) => setForm({ ...form, website: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Map Link *</label>
-          <input
-            className="form-control"
-            placeholder="Map Link URL"
-            type="url"
-            value={form.mapLink}
-            onChange={(e) => setForm({ ...form, mapLink: e.target.value })}
-            required
-          />
-        </div>
-
-        {[
-          { key: "aboutCollege", label: "About College *", rows: 3 },
-          { key: "academics", label: "Academics *", rows: 3 },
-          { key: "departments", label: "Departments * (comma-separated)", rows: 2 },
-          { key: "facilities", label: "Facilities * (comma-separated)", rows: 2 },
-          { key: "placementInfo", label: "Placement Information *", rows: 3 },
-          { key: "admissionInfo", label: "Admission Information *", rows: 3 },
-        ].map(({ key, label, rows }) => (
-          <div className="col-md-12" key={key}>
-            <label className="form-label">{label}</label>
-            <textarea
-              className="form-control"
-              placeholder={label}
-              value={form[key]}
-              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-              rows={rows}
-              required
-            />
-          </div>
-        ))}
-
-        <div className="col-md-6">
-          <label className="form-label">Logo URL *</label>
-          <div className="input-group">
-            <input
-              className="form-control"
-              placeholder="Logo URL"
-              value={form.logo}
-              onChange={(e) => setForm({ ...form, logo: e.target.value })}
-              required
-            />
-            <label className="input-group-text">
-              <input
-                type="file"
-                className="d-none"
-                onChange={(e) => uploadImage(e, "logo")}
-                accept="image/*"
-              />
-              Upload
-            </label>
-          </div>
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">College Image URL *</label>
-          <div className="input-group">
-            <input
-              className="form-control"
-              placeholder="College Image URL"
-              value={form.collegeImage}
-              onChange={(e) => setForm({ ...form, collegeImage: e.target.value })}
-              required
-            />
-            <label className="input-group-text">
-              <input
-                type="file"
-                className="d-none"
-                onChange={(e) => uploadImage(e, "collegeImage")}
-                accept="image/*"
-              />
-              Upload
-            </label>
-          </div>
-        </div>
-
-        <div className="col-md-12">
-          <div className="d-flex gap-2">
-            <button className="btn btn-primary" type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Saving...
-                </>
-              ) : editingId ? "Update College" : "Add College"}
-            </button>
-            {editingId && (
-              <button className="btn btn-secondary" type="button" onClick={cancelEdit} disabled={loading}>
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>
-      </form>
-
-      <hr />
-
+      {/* ================= TABLE ================= */}
       <h4>Colleges List ({colleges.length})</h4>
 
       {loading && !editingId ? (
         <div className="text-center my-4">
-          <div className="spinner-border" role="status">
+          <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
         </div>
-      ) : colleges.length === 0 ? (
-        <div className="alert alert-info">No colleges found for this degree</div>
       ) : (
         <div className="table-responsive">
           <table className="table table-bordered table-hover">
@@ -590,33 +644,64 @@ const Colleges = () => {
                 <th>#</th>
                 <th>Logo</th>
                 <th>Name</th>
-                <th>Status</th>
+                <th>Short Name</th>
                 <th>City</th>
                 <th>Phone</th>
-                <th width="180">Actions</th>
+                <th>Status</th>
+                <th width="200">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {colleges.map((c, index) => (
-                <tr key={c.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    {c.logo ? (
-                      <img src={c.logo} alt="Logo" style={{ width: "40px", height: "40px", objectFit: "contain" }} />
-                    ) : "No logo"}
-                  </td>
-                  <td>{c.name}</td>
-                  <td>{c.collegeStatus || "N/A"}</td>
-                  <td>{c.city}</td>
-                  <td>{c.phone || "-"}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <button className="btn btn-warning btn-sm" onClick={() => edit(c)} disabled={loading}>Edit</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => remove(c.id)} disabled={loading}>Delete</button>
-                    </div>
+              {colleges.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="text-center text-muted py-4">
+                    No colleges found for this degree. Add your first college above.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                colleges.map((college, index) => (
+                  <tr key={college.id || college._id || index}>
+                    <td>{index + 1}</td>
+                    <td>
+                      {college.logo ? (
+                        <img 
+                          src={college.logo} 
+                          alt="Logo" 
+                          style={{ width: "40px", height: "40px", objectFit: "contain" }}
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/40"; }}
+                        />
+                      ) : (
+                        <span className="text-muted">No logo</span>
+                      )}
+                    </td>
+                    <td>
+                      <strong>{college.name}</strong>
+                    </td>
+                    <td>{college.shortName || "-"}</td>
+                    <td>{college.city}</td>
+                    <td>{college.phone || "-"}</td>
+                    <td>
+                      <span className="badge bg-info">{college.collegeStatus || "N/A"}</span>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm me-2"
+                        onClick={() => edit(college)}
+                        disabled={loading}
+                      >
+                        <i className="bi bi-pencil"></i> Edit
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => remove(college.id || college._id)}
+                        disabled={loading}
+                      >
+                        <i className="bi bi-trash"></i> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
