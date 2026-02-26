@@ -7,8 +7,6 @@ import {
   FaClipboardList,
   FaBrain,
   FaTools,
-  FaVideo,
-  FaStar,
   FaLayerGroup,
 } from "react-icons/fa";
 import "./Sidebar.css";
@@ -22,57 +20,45 @@ const Sidebar = () => {
 
       <nav className="sidebar-menu">
 
-        {/* Dashboard */}
         <NavLink to="/dashboard">
           <FaClipboardList /> Dashboard
         </NavLink>
 
-        {/* Advertisement */}
         <NavLink to="/advertisement">
           <FaTools /> Advertisement
         </NavLink>
 
-        {/* School */}
         <NavLink to="/school">
           <FaSchool /> School
         </NavLink>
 
-        {/* College Module */}
         <NavLink to="/college-categories">
           <FaUniversity /> College
         </NavLink>
 
-        {/* Course */}
         <NavLink to="/course-categories">
           <FaBook /> Course
         </NavLink>
 
-        {/* ✅ UPDATED EXAM MODULE */}
         <NavLink to="/exam-categories">
           <FaLayerGroup /> Exam
         </NavLink>
 
-         {/* jobs */}
         <NavLink to="/job-categories">
           <FaLayerGroup /> Jobs
         </NavLink>
 
-        {/* Blogs */}
         <NavLink to="/blogs">
           <FaClipboardList /> Blogs
         </NavLink>
 
-        {/* IQ */}
         <NavLink to="/iq">
           <FaBrain /> IQ
         </NavLink>
 
-        {/* Extra Skill */}
         <NavLink to="/extra-skill-categories">
           <FaTools /> Extra Skill
         </NavLink>
-
-       
 
       </nav>
     </div>
